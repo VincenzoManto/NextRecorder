@@ -13,14 +13,14 @@
     "default_title": "Registriamo!"
   },
   "content_scripts": [
-    {
+    { 
       
       "matches": [
         "http://*/*",
         "https://*/*",
         "file:///*/*"
       ],
-      "js":["jquery-3.7.1.min.js","tooltip.js","myScript.js"],
+      "js":["jquery-3.7.1.min.js","output.js","myScript.js"],
       "all_frames": true
     }
   ],
@@ -39,6 +39,7 @@
     "scripting",
     "http://*/*", "https://*/*", "file:///*/*"
   ],
+  "content_security_policy": "script-src 'self' 'unsafe-eval' https://ajax.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'sha256-tZlffsVUf8m/BksFVHQHWbMRPaA5+WSlxZtmjNPJh5I=';  object-src 'self'",
   "host_permissions": [
     "<all_urls>"
   ],

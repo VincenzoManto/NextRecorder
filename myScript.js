@@ -1,4 +1,7 @@
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.msg === 'content') {
+        return;
+    }
    if (request.active) {
 
        var style = document.createElement('link');
@@ -15,6 +18,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
        (document.body || document.documentElement).appendChild(x);
 
        document.addEventListener('click', capture, false);
+       document.addEventListener('keyup', captureKey, false);
        var x2 = document.createElement('i');
        x2.className = 'far fa-stop text-danger sysdat';
        x2.addEventListener('click', stop, false);
@@ -34,6 +38,22 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
    }
 });
 
+function captureKey(e) {
+    const action = {
+        action: 'write',
+        data: e.key
+    }
+    chrome.runtime.sendMessage({
+            msg: 'capture',
+            action
+        },
+        function(response) {
+            $('b.sysdat').text(response.count);
+            console.log(response);
+        }
+    );
+}
+
 function capture(e) {
    let action = null;
    if (e.target.className?.includes('sysdat')) {
@@ -43,7 +63,8 @@ function capture(e) {
        action = {
            action: 'click select',
            target: $(e.target).parents('stark-select').first().find('label').text(),
-           data: getDataTest(e)
+           data: getDataTest(e),
+           xpath: '/html/' +  getPathTo(e.target)
        };
    }
    if (e.target.tagName?.toLowerCase() === 'button' || $(e.target).parents('button').length || $(e.target).parents('a').length) {
@@ -51,7 +72,8 @@ function capture(e) {
        action = {
            action: 'click button',
            target: name,
-           data: getDataTest(e)
+           data: getDataTest(e),
+           xpath: '/html/' +  getPathTo(e.target)
        }
    }
    if ($(e.target).parents('stark-input').length) {
@@ -63,16 +85,18 @@ function capture(e) {
            action: 'type',
            value: $(e.target).val(),
            target: $(e.target).parents('stark-input').first().find('label').text(),
-           data: getDataTest(e)
+           data: getDataTest(e),
+           xpath: '/html/' +  getPathTo(e.target)
        };
    }
    if ($(e.target).parents('stark-datepicker').length) {
 
        action = {
-           action: 'select date',
+           action: 'date',
            value: $(e.target).val(),
            target: $(e.target).parents('stark-datepicker').first().find('label').text(),
-           data: getDataTest(e)
+           data: getDataTest(e),
+           xpath: '/html/' +  getPathTo(e.target)
        };
    }
    if (action) {
@@ -89,6 +113,25 @@ function capture(e) {
    }
 }
 
+function getPathTo(element) {
+    if (element === document.body)
+        return element.tagName.toLowerCase();
+
+    var ix= 0;
+    var siblings= element.parentNode.childNodes;
+    for (var i= 0; i<siblings.length; i++) {
+        var sibling= siblings[i];
+        if (sibling === element)
+            if (ix > 0) {
+                return getPathTo(element.parentNode)+'/'+element.tagName.toLowerCase()+'['+(ix+1)+']';
+            } else {
+                return getPathTo(element.parentNode)+'/'+element.tagName.toLowerCase();
+            }
+        if (sibling.nodeType===1 && sibling.tagName===element.tagName)
+            ix++;
+    }
+}
+
 function getDataTest(e) {
    return $(e.target).attr('data-test') || $(e.target).closest('[data-test]').first()?.attr('data-test');
 }
@@ -99,8 +142,6 @@ function stop() {
    }, function(response) {
        console.log(response);
        actions = response;
-       openPlay();
-       play(0);
        document.removeEventListener('click', capture);
        document.getElementsByClassName('sysdat')[0]?.remove();
        document.getElementsByClassName('sysdat-power')[0]?.remove();
